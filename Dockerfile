@@ -4,7 +4,7 @@ FROM python:3.11.4-slim-bullseye AS install-browser
 # Install Chromium, Chromedriver, Firefox, Geckodriver, and build tools in one layer
 RUN apt-get update && \
     apt-get satisfy -y "chromium, chromium-driver (>= 115.0)" && \
-    apt-get install -y --no-install-recommends firefox-esr wget build-essential curl && \
+    apt-get install -y --no-install-recommends firefox-esr wget build-essential curl supervisor && \
     wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz && \
     tar -xvzf geckodriver-v0.33.0-linux64.tar.gz && \
     chmod +x geckodriver && \
@@ -14,6 +14,8 @@ RUN apt-get update && \
     # Install Node.js
     curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
+    # Create supervisor directory
+    mkdir -p /etc/supervisor/conf.d && \
     rm -rf /var/lib/apt/lists/*
 
 # Stage 2: Build frontend
@@ -45,23 +47,23 @@ RUN mkdir -p /usr/src/app/outputs /usr/src/app/logs && \
 COPY . .
 
 # Create supervisor configuration
-RUN echo "[supervisord] \n\
-nodaemon=true \n\
+RUN echo "[supervisord]\n\
+nodaemon=true\n\
 \n\
-[program:backend] \n\
-command=uvicorn main:app --host 0.0.0.0 --port 8000 \n\
-directory=/usr/src/app \n\
-stdout_logfile=/dev/stdout \n\
-stdout_logfile_maxbytes=0 \n\
-stderr_logfile=/dev/stderr \n\
-stderr_logfile_maxbytes=0 \n\
+[program:backend]\n\
+command=uvicorn main:app --host 0.0.0.0 --port 8000\n\
+directory=/usr/src/app\n\
+stdout_logfile=/dev/stdout\n\
+stdout_logfile_maxbytes=0\n\
+stderr_logfile=/dev/stderr\n\
+stderr_logfile_maxbytes=0\n\
 \n\
-[program:frontend] \n\
-command=npm start \n\
-directory=/usr/src/frontend \n\
-stdout_logfile=/dev/stdout \n\
-stdout_logfile_maxbytes=0 \n\
-stderr_logfile=/dev/stderr \n\
+[program:frontend]\n\
+command=npm start\n\
+directory=/usr/src/frontend\n\
+stdout_logfile=/dev/stdout\n\
+stdout_logfile_maxbytes=0\n\
+stderr_logfile=/dev/stderr\n\
 stderr_logfile_maxbytes=0" > /etc/supervisor/conf.d/supervisord.conf
 
 # Expose both ports
