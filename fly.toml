@@ -22,12 +22,8 @@ primary_region = "dfw"
   [[http_service.ports]]
     port = 443
     handlers = ["tls", "http"]
-    
-  [[http_service.ports]]
-    port = 3000
-    handlers = ["http"]
 
-[services.concurrency]
+[http_service.concurrency]
   type = "connections"
   hard_limit = 25
   soft_limit = 20
