@@ -7,7 +7,7 @@ primary_region = "dfw"
   dockerfile = "Dockerfile"
 
 [http_service]
-  internal_port = 8000
+  internal_port = 3000
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
@@ -23,6 +23,15 @@ primary_region = "dfw"
     port = 443
     handlers = ["tls", "http"]
 
+[services]
+  [services.frontend]
+    internal_port = 3000
+    protocol = "tcp"
+
+  [services.backend]
+    internal_port = 8000
+    protocol = "tcp"
+
 [http_service.concurrency]
   type = "connections"
   hard_limit = 25
@@ -34,5 +43,6 @@ primary_region = "dfw"
   cpus = 8
 
 [env]
-  PORT = "8000"
+  PORT = "3000"
+  NODE_ENV = "production"
   PYTHONUNBUFFERED = "1"
