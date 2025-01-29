@@ -18,6 +18,8 @@ jobs:
           flyctl secrets set OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
           flyctl secrets set TAVILY_API_KEY="${{ secrets.TAVILY_API_KEY }}"
           flyctl secrets set LANGCHAIN_API_KEY="${{ secrets.LANGCHAIN_API_KEY }}"
+          flyctl secrets set PORT="3000"
+          flyctl secrets set NODE_ENV="production"
           # Deploy the application
           flyctl deploy --remote-only
         env:
@@ -25,3 +27,5 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
+          PORT: "3000"
+          NODE_ENV: "production"

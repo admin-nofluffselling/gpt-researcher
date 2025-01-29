@@ -59,9 +59,9 @@ stderr_logfile=/dev/stderr\n\
 stderr_logfile_maxbytes=0\n\
 \n\
 [program:frontend]\n\
-command=PORT=3000 npm run start\n\
+command=npm run start\n\
 directory=/usr/src/frontend\n\
-environment=NODE_ENV=production,PORT=3000\n\
+environment=PORT=3000,NODE_ENV=production\n\
 stdout_logfile=/dev/stdout\n\
 stdout_logfile_maxbytes=0\n\
 stderr_logfile=/dev/stderr\n\
