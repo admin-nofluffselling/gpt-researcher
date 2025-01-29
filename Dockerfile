@@ -49,26 +49,41 @@ COPY . .
 # Create supervisor configuration
 RUN echo "[supervisord]\n\
 nodaemon=true\n\
+logfile=/dev/stdout\n\
+logfile_maxbytes=0\n\
 \n\
 [program:backend]\n\
-command=uvicorn main:app --host 0.0.0.0 --port 8000\n\
+command=uvicorn main:app --host 0.0.0.0 --port 8000 --log-level debug\n\
 directory=/usr/src/app\n\
 stdout_logfile=/dev/stdout\n\
 stdout_logfile_maxbytes=0\n\
 stderr_logfile=/dev/stderr\n\
 stderr_logfile_maxbytes=0\n\
+autorestart=true\n\
 \n\
 [program:frontend]\n\
 command=npm run start\n\
 directory=/usr/src/frontend\n\
-environment=PORT=3000,NODE_ENV=production\n\
+environment=PORT=3000,NODE_ENV=production,NEXT_PUBLIC_API_URL=https://gpt-researcher-broken-violet-1285.fly.dev:8000\n\
 stdout_logfile=/dev/stdout\n\
 stdout_logfile_maxbytes=0\n\
 stderr_logfile=/dev/stderr\n\
-stderr_logfile_maxbytes=0" > /etc/supervisor/conf.d/supervisord.conf
+stderr_logfile_maxbytes=0\n\
+autorestart=true" > /etc/supervisor/conf.d/supervisord.conf
+
+# Create a startup script to wait for ports to be available
+RUN echo '#!/bin/bash\n\
+\n\
+# Wait for ports to be available\n\
+timeout 30 bash -c "until nc -z localhost 3000; do sleep 1; done"\n\
+timeout 30 bash -c "until nc -z localhost 8000; do sleep 1; done"\n\
+\n\
+exec "$@"' > /usr/local/bin/docker-entrypoint.sh && \
+    chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose both ports
 EXPOSE 3000 8000
 
-# Start supervisor to manage both processes
+# Use the entrypoint script
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["/usr/local/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
