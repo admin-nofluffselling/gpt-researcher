@@ -4,47 +4,68 @@ FROM python:3.11.4-slim-bullseye AS install-browser
 # Install Chromium, Chromedriver, Firefox, Geckodriver, and build tools in one layer
 RUN apt-get update && \
     apt-get satisfy -y "chromium, chromium-driver (>= 115.0)" && \
-    apt-get install -y --no-install-recommends firefox-esr wget build-essential && \
+    apt-get install -y --no-install-recommends firefox-esr wget build-essential curl && \
     wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz && \
     tar -xvzf geckodriver-v0.33.0-linux64.tar.gz && \
     chmod +x geckodriver && \
     mv geckodriver /usr/local/bin/ && \
     rm geckodriver-v0.33.0-linux64.tar.gz && \
     chromium --version && chromedriver --version && \
-    rm -rf /var/lib/apt/lists/*  # Clean up apt lists to reduce image size
+    # Install Node.js
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
-# Stage 2: Python dependencies installation
-FROM install-browser AS gpt-researcher-install
+# Stage 2: Build frontend
+WORKDIR /usr/src/frontend
+COPY frontend/nextjs/package*.json ./
+RUN npm install --legacy-peer-deps
 
-ENV PIP_ROOT_USER_ACTION=ignore
+COPY frontend/nextjs/ ./
+RUN npm run build
+
+# Stage 3: Python dependencies installation
 WORKDIR /usr/src/app
 
-# Copy and install Python dependencies in a single layer to optimize cache usage
+# Copy and install Python dependencies including LangGraph
 COPY ./requirements.txt ./requirements.txt
 COPY ./multi_agents/requirements.txt ./multi_agents/requirements.txt
 
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir -r multi_agents/requirements.txt
+    pip install --no-cache-dir -r multi_agents/requirements.txt && \
+    pip install langgraph-cli supervisor
 
-# Stage 3: Final stage with non-root user and app
-FROM gpt-researcher-install AS gpt-researcher
+# Stage 4: Final setup
+# Create necessary directories and set permissions
+RUN mkdir -p /usr/src/app/outputs /usr/src/app/logs && \
+    chmod 777 /usr/src/app/outputs && \
+    chmod 777 /usr/src/app/logs
 
-# Create a non-root user for security
-RUN useradd -ms /bin/bash gpt-researcher && \
-    chown -R gpt-researcher:gpt-researcher /usr/src/app && \
-    # Add these lines to create and set permissions for outputs directory
-    mkdir -p /usr/src/app/outputs && \
-    chown -R gpt-researcher:gpt-researcher /usr/src/app/outputs && \
-    chmod 777 /usr/src/app/outputs
-    
-USER gpt-researcher
-WORKDIR /usr/src/app
+# Copy the backend application
+COPY . .
 
-# Copy the rest of the application files with proper ownership
-COPY --chown=gpt-researcher:gpt-researcher ./ ./
+# Create supervisor configuration
+RUN echo "[supervisord] \n\
+nodaemon=true \n\
+\n\
+[program:backend] \n\
+command=uvicorn main:app --host 0.0.0.0 --port 8000 \n\
+directory=/usr/src/app \n\
+stdout_logfile=/dev/stdout \n\
+stdout_logfile_maxbytes=0 \n\
+stderr_logfile=/dev/stderr \n\
+stderr_logfile_maxbytes=0 \n\
+\n\
+[program:frontend] \n\
+command=npm start \n\
+directory=/usr/src/frontend \n\
+stdout_logfile=/dev/stdout \n\
+stdout_logfile_maxbytes=0 \n\
+stderr_logfile=/dev/stderr \n\
+stderr_logfile_maxbytes=0" > /etc/supervisor/conf.d/supervisord.conf
 
-# Expose the application's port
-EXPOSE 8000
+# Expose both ports
+EXPOSE 8000 3000
 
-# Define the default command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start supervisor to manage both processes
+CMD ["/usr/local/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
