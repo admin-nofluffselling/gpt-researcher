@@ -59,15 +59,16 @@ stderr_logfile=/dev/stderr\n\
 stderr_logfile_maxbytes=0\n\
 \n\
 [program:frontend]\n\
-command=npm start --port 3001\n\
+command=PORT=3000 npm run start\n\
 directory=/usr/src/frontend\n\
+environment=NODE_ENV=production,PORT=3000\n\
 stdout_logfile=/dev/stdout\n\
 stdout_logfile_maxbytes=0\n\
 stderr_logfile=/dev/stderr\n\
 stderr_logfile_maxbytes=0" > /etc/supervisor/conf.d/supervisord.conf
 
-# Expose only the main port
-EXPOSE 8000
+# Expose both ports
+EXPOSE 3000 8000
 
 # Start supervisor to manage both processes
 CMD ["/usr/local/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
