@@ -1,0 +1,22 @@
+# fly.toml app configuration file generated for gpt-researcher-broken-violet-1285 on 2025-01-29T14:16:04-05:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'gpt-researcher-broken-violet-1285'
+primary_region = 'dfw'
+
+[build]
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '16gb'
+  cpu_kind = 'shared'
+  cpus = 8
