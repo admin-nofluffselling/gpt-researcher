@@ -4,28 +4,40 @@ on:
     branches:
       - master
 jobs:
-  deploy:
-    name: Deploy app
+  deploy-backend:
+    name: Deploy backend
     runs-on: ubuntu-latest
-    concurrency: deploy-group
     environment: production
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Deploy to fly.io
+      - name: Deploy backend to fly.io
         run: |
-          # Set environment variables in fly.io
-          flyctl secrets set OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
-          flyctl secrets set TAVILY_API_KEY="${{ secrets.TAVILY_API_KEY }}"
-          flyctl secrets set LANGCHAIN_API_KEY="${{ secrets.LANGCHAIN_API_KEY }}"
-          flyctl secrets set PORT="3000"
-          flyctl secrets set NODE_ENV="production"
-          # Deploy the application
-          flyctl deploy --remote-only
+          # Copy Dockerfile
+          cp Dockerfile.backend Dockerfile
+          # Set environment variables
+          flyctl secrets set --app gpt-researcher-backend \
+            OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            TAVILY_API_KEY="${{ secrets.TAVILY_API_KEY }}" \
+            LANGCHAIN_API_KEY="${{ secrets.LANGCHAIN_API_KEY }}"
+          # Deploy
+          flyctl deploy --app gpt-researcher-backend --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-          LANGCHAIN_API_KEY: ${{ secrets.LANGCHAIN_API_KEY }}
-          PORT: "3000"
-          NODE_ENV: "production"
+
+  deploy-frontend:
+    name: Deploy frontend
+    runs-on: ubuntu-latest
+    environment: production
+    needs: deploy-backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy frontend to fly.io
+        run: |
+          # Copy Dockerfile
+          cp Dockerfile.frontend Dockerfile
+          # Deploy
+          flyctl deploy --app gpt-researcher-frontend --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

@@ -1,33 +1,11 @@
-# fly.toml app configuration file for gpt-researcher-broken-violet-1285
-
-app = "gpt-researcher-broken-violet-1285"
+app = "gpt-researcher-backend"
 primary_region = "dfw"
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = "Dockerfile.backend"
 
-[[services]]
-  protocol = "tcp"
-  internal_port = 3000
-  processes = ["app"]
-
-  [[services.ports]]
-    port = 80
-    handlers = ["http"]
-    force_https = true
-
-  [[services.ports]]
-    port = 443
-    handlers = ["tls", "http"]
-
-  [[services.ports]]
-    port = 3000
-    handlers = ["http"]
-
-  [[services.tcp_checks]]
-    interval = "15s"
-    timeout = "2s"
-    grace_period = "1s"
+[env]
+  PYTHONUNBUFFERED = "1"
 
 [[services]]
   protocol = "tcp"
@@ -47,9 +25,3 @@ primary_region = "dfw"
   memory = "16gb"
   cpu_kind = "shared"
   cpus = 8
-
-[env]
-  PORT = "3000"
-  NODE_ENV = "production"
-  PYTHONUNBUFFERED = "1"
-  NEXT_PUBLIC_API_URL = "https://gpt-researcher-broken-violet-1285.fly.dev:8000"
