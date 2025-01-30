@@ -13,15 +13,9 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Deploy backend to fly.io
         run: |
-          # Copy Dockerfile
           cp Dockerfile.backend Dockerfile
-          # Set environment variables
-          flyctl secrets set --app gpt-researcher-backend \
-            OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
-            TAVILY_API_KEY="${{ secrets.TAVILY_API_KEY }}" \
-            LANGCHAIN_API_KEY="${{ secrets.LANGCHAIN_API_KEY }}"
-          # Deploy
-          flyctl deploy --app gpt-researcher-backend --remote-only
+          cp backend-fly-toml fly.toml
+          flyctl deploy --config fly.toml --app gpt-researcher-backend
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
@@ -35,9 +29,8 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Deploy frontend to fly.io
         run: |
-          # Copy Dockerfile
           cp Dockerfile.frontend Dockerfile
-          # Deploy
-          flyctl deploy --app gpt-researcher-frontend --remote-only
+          cp frontend-fly-toml fly.toml
+          flyctl deploy --config fly.toml --app gpt-researcher-frontend
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
